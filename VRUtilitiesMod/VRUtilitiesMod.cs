@@ -1,14 +1,11 @@
 ﻿using BepInEx;
 using BepInEx.Configuration;
-using DV;
-using DV.CabControls.VRTK;
 using DV.CabControls.Spec;
-using DV.Utils;
-using UnityEngine;
-using System.Collections.Generic;
-using VRTK;
 using HarmonyLib;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
+using VRTK;
 
 namespace VRUtilitiesMod
 {
@@ -165,7 +162,7 @@ namespace VRUtilitiesMod
             }
         }
 
-         public void FindPrefabs()
+        public void FindPrefabs()
         {
             var gos = Resources.FindObjectsOfTypeAll<GameObject>();
 
@@ -182,11 +179,13 @@ namespace VRUtilitiesMod
         [HarmonyPatch(typeof(SetupDeviceSpecificControls), "SetupForDevice")]
         public static class OverrideUseInteractionButton
         {
-            private static bool once = false;
             public static bool ControllersInit { get; private set; }
             public static void Postfix()//, ControlImplBase ___control, ref Coroutine ___UpdaterCoroutine)
             {
-                if (once) OriginalUseButton = SetupDeviceSpecificControls.useOverrideButtonForButtonComponent;
+                if (!ControllersInit)
+                {
+                    OriginalUseButton = SetupDeviceSpecificControls.useOverrideButtonForButtonComponent;
+                }
                 ControllersInit = true;
                 VRUtilitiesMod.Instance.setOverrideInteraction();
             }
