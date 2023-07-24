@@ -37,15 +37,9 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>E:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="BepInEx">
-      <HintPath>E:\SteamLibrary\steamapps\common\Derail Valley\BepInEx\core\BepInEx.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="DV.Utils">
-      <HintPath>E:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -57,7 +51,6 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
-      <HintPath>E:\SteamLibrary\steamapps\common\Derail Valley\DerailValley_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
@@ -80,4 +73,8 @@
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>start XCOPY /Y /R "$(TargetDir)\*.dll" "E:\SteamLibrary\steamapps\common\Derail Valley\Mods\VRUtilities\"
+if $(ConfigurationName) == Release (powershell Compress-Archive -Path '$(TargetDir)*.dll', '$(TargetDir)Info.json' -DestinationPath '$(TargetDir)dvVRUtilities.zip' -Force)</PostBuildEvent>
+  </PropertyGroup>
 </Project>
