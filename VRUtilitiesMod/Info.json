@@ -1,0 +1,10 @@
+{
+	"Id": "VRUtilities",
+	"DisplayName": "VR Utilites",
+	"Author": "Vanguard",
+	"Version": "0.2.0",
+	"AssemblyName": "vrUtilities.dll",
+	"EntryMethod": "VRUtilitiesMod.UMM.Loader.Main",
+	"HomePage": "https://www.nexusmods.com/derailvalley/mods/631",
+	"Repository": "https://raw.githubusercontent.com/mricher-git/dv-vrutilities-mod/master/Repository.json"
+}

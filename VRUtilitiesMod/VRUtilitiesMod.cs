@@ -1,96 +1,84 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
-using DV.CabControls.Spec;
+﻿using DV.CabControls.Spec;
+using DV.CabControls.VRTK;
+using DV.VRTK_Extensions;
 using HarmonyLib;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityModManagerNet;
 using VRTK;
+using VRUtilitiesMod.UMM;
 
 namespace VRUtilitiesMod
 {
 
-    internal static class PluginInfo
+    public class VRUtilitiesMod : MonoBehaviour
     {
-        public const string Guid = "VRUtilities";
-        public const string Name = "VRUtilities Mod";
-        public const string Version = "0.1.0";
-    }
-
-    [BepInPlugin(PluginInfo.Guid, PluginInfo.Name, PluginInfo.Version)]
-    public class VRUtilitiesMod : BaseUnityPlugin
-    {
-        public static VRUtilitiesMod Instance { get; private set; }
-        public static Harmony HarmonyInst { get; private set; }
+        public const string Version = "0.2.0";
 
         private bool GameInitialized;
-        private const string TWEAKS_SECTION = "Tweaks";
-        private const string FIXES_SECTION = "Fixes";
+        internal Loader.VRUtilitiesModSettings Settings;
+        public static Harmony HarmonyInst { get; private set; }
 
-        public ConfigEntry<bool> DisableTouch;
-        public ConfigEntry<bool> OverrideInteractionButton;
-        public ConfigEntry<string> InteractionButton;
-        private static VRTK_ControllerEvents.ButtonAlias OriginalUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;
-        public ConfigEntry<bool> DisableWindowLights;
-        public VRTK_ControllerEvents.ButtonAlias useButton;
-
-        private GameObject windowLights;
-
+        [SaveOnReload]
+        private static VRTK_ControllerEvents.ButtonAlias OriginalUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;     
         private Dictionary<string, GameObject> LocoInteriors = new Dictionary<string, GameObject>
         {
             { "LocoS282A_Interior", null },
+            { "LocoS060_Interior", null },
             { "LocoDE2_Interior", null },
             { "LocoDM3_Interior", null },
             { "LocoDH4_Interior", null },
             { "LocoDE6_Interior", null }
         };
+        
+        public bool TouchInteractionEnabled { set; get; }
+        public VRTK_ControllerEvents.ButtonAlias TouchInteractionButton { set; get; }
 
         void Start()
         {
-            if (Instance != null)
+            if (!VRManager.IsVREnabled())
             {
-                Logger.LogFatal("VR Utilities is already loaded!");
-                Destroy(this);
+                Loader.Log("VR not enabled - DV Utilites mod disabled");
                 return;
             }
 
-            Instance = this;
-
-            DisableTouch = Instance.Config.Bind(TWEAKS_SECTION, "Disable Touch Interaction", false, "Stops controls from automatically interacticting by touch, require button press");
-            DisableTouch.SettingChanged += (_, __) => setDisableTouch();
-            OverrideInteractionButton = Instance.Config.Bind(TWEAKS_SECTION, "Override Interaction Button", false, "Override VR controller button use to interact with buttons/switches");
-            OverrideInteractionButton.SettingChanged += (_, __) => setOverrideInteraction();
-            InteractionButton = Instance.Config.Bind(TWEAKS_SECTION, "Interaction Button", "TriggerPress", new ConfigDescription("Choose which button to override to: TriggerPress or GripPress", new AcceptableValueList<string>("TriggerPress", "GripPress")));
-            InteractionButton.SettingChanged += (_, __) => setOverrideInteraction();
-            DisableWindowLights = Instance.Config.Bind(FIXES_SECTION, "Night time performance fix", true, "Disables building window lights due to current bug in build 93-998");
-            DisableWindowLights.SettingChanged += (_, __) => setDisableWindowLights();
-
-            Instance.Config.SaveOnConfigSet = true;
-            if (VRManager.IsVREnabled())
-            {
-                Logger.LogInfo("VR Enabled");
-            }
-            else
-            {
-                Logger.LogInfo("VR not enabled - DV Utilites mod disabled");
-                return;
-            }
+            Loader.Log("VR Enabled");
 
             WorldStreamingInit.LoadingFinished += OnLoadingFinished;
             UnloadWatcher.UnloadRequested += UnloadRequested;
             FindPrefabs();
-            setDisableTouch();
 
-            HarmonyInst = new Harmony(PluginInfo.Guid);
+            HarmonyInst = new Harmony(Loader.ModEntry.Info.Id);
+            Loader.LogDebug("PatchAll");
             HarmonyInst.PatchAll(Assembly.GetExecutingAssembly());
+            OnSettingsChanged();
+        }
+
+        public void OnDestroy()
+        {
+            Settings.UseOverride.Enabled = false;
+            setOverrideUse();
+            Settings.DisableTouch = false;
+            Loader.LogDebug("UnpatchAll");
+            HarmonyInst.UnpatchAll(Loader.ModEntry.Info.Id);
+        }
+
+        public void OnSettingsChanged()
+        {
+            if ((TouchInteractionEnabled != Settings.UseOverride.Enabled) || (TouchInteractionButton != Settings.UseOverride.Button))
+            {
+                TouchInteractionButton = Settings.UseOverride.Button;
+                TouchInteractionEnabled = Settings.UseOverride.Enabled;
+                setOverrideUse();
+            }
         }
 
         private void OnLoadingFinished()
         {
             GameInitialized = true;
-            windowLights = GameObject.Find("windowLights 0");
-            setDisableWindowLights();
-            Logger.LogInfo("OLF: Use Button set to" + SetupDeviceSpecificControls.useOverrideButtonForButtonComponent);
+            UMM.Loader.Log("Info: Orignal Use Button was set to" + SetupDeviceSpecificControls.useOverrideButtonForButtonComponent);
         }
 
         private void UnloadRequested()
@@ -98,66 +86,62 @@ namespace VRUtilitiesMod
             GameInitialized = false;
         }
 
-        private void setDisableTouch()
+        public void setOverrideUse()
         {
-            foreach (var go in LocoInteriors.Values)
+            var vrtkButtons = (ButtonVRTK[])Resources.FindObjectsOfTypeAll<ButtonVRTK>();// (typeof(ButtonVRTK));
+            var vrtkToggle = (ToggleSwitchVRTK[])Resources.FindObjectsOfTypeAll<ToggleSwitchVRTK>();// (typeof(ToggleSwitchVRTK));
+
+            if (Settings.UseOverride.Enabled && Settings.UseOverride.Button != VRTK_ControllerEvents.ButtonAlias.Undefined)
             {
-                //FindObjectOfType<ToggleSwitchVRTK>();
-                var buttons = go.GetComponentsInChildren<DV.CabControls.Spec.Button>(true);
-                foreach (var button in buttons)
+                if (OriginalUseButton != VRTK_ControllerEvents.ButtonAlias.Undefined)
+                    SetupDeviceSpecificControls.useOverrideButtonForButtonComponent = Settings.UseOverride.Button;
+
+                foreach(var button in vrtkButtons)
                 {
-                    button.disableTouchUse = DisableTouch.Value;
+                    if (button.gameObject.scene.name == null) continue;
+                    Traverse traverseButton = Traverse.Create(button);
+                    traverseButton.Field("interactable").Field("useOverrideButton").SetValue(Settings.UseOverride.Button);
+                    traverseButton.Field("useOverrideButtonSet").SetValue(true);
                 }
-                var toggles = go.GetComponentsInChildren<DV.CabControls.Spec.ToggleSwitch>(true);
-                foreach (var toggle in toggles)
+                foreach (var button in vrtkToggle)
                 {
-                    toggle.disableTouchUse = DisableTouch.Value;
-                }
-            }
-        }
-
-        private void setDisableWindowLights()
-        {
-            if (!GameInitialized) return;
-
-            if (windowLights == null) return;
-
-            windowLights.SetActive(!DisableWindowLights.Value);
-        }
-
-        public void setOverrideInteraction()
-        {
-            if (InteractionButton.Value == "TriggerPress") useButton = VRTK_ControllerEvents.ButtonAlias.TriggerPress;
-            else if (InteractionButton.Value == "GripPress") useButton = VRTK_ControllerEvents.ButtonAlias.GripPress;
-            else useButton = VRTK_ControllerEvents.ButtonAlias.Undefined;
-
-            var buttons = Resources.FindObjectsOfTypeAll<Button>();
-
-            if (OverrideInteractionButton.Value)
-            {
-                if (OverrideUseInteractionButton.ControllersInit)
-                    SetupDeviceSpecificControls.useOverrideButtonForButtonComponent = useButton;
-
-                foreach (var button in buttons)
-                {
-                    button.overrideUseButton = useButton;
+                    if (button.gameObject.scene.name == null) continue;
+                    Traverse traverseButton = Traverse.Create(button);
+                    traverseButton.Field("interactable").Field("useOverrideButton").SetValue(Settings.UseOverride.Button);
+                    traverseButton.Field("useOverrideButtonSet").SetValue(true);
                 }
             }
             else
             {
-                if (OverrideUseInteractionButton.ControllersInit)
-                    SetupDeviceSpecificControls.useOverrideButtonForButtonComponent = OriginalUseButton;
+                SetupDeviceSpecificControls.useOverrideButtonForButtonComponent = OriginalUseButton;
                 
-                foreach (var button in buttons)
+                foreach (var button in vrtkButtons)
                 {
-                    if (button.transform.parent?name.StartsWith("MapMarker") : false)
+                    if (button.gameObject.scene.name == null) continue;
+                    var overrideUseButton = Traverse.Create(button).Field("spec").Field("overrideUseButton").GetValue<VRTK_ControllerEvents.ButtonAlias>();
+                    if (overrideUseButton == VRTK_ControllerEvents.ButtonAlias.Undefined || VRTK_DeviceFinder.GetControllerReferenceRightHand().IsWandOrUndefined() || VRTK_DeviceFinder.GetControllerReferenceLeftHand().IsWandOrUndefined())
                     {
-                        button.overrideUseButton = VRTK_ControllerEvents.ButtonAlias.TriggerPress;
+                        Traverse.Create(button).Field("interactable").Field("useOverrideButton").SetValue(OriginalUseButton);
                     }
                     else
                     {
-                        button.overrideUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;
+                        Traverse.Create(button).Field("interactable").Field("useOverrideButton").SetValue(overrideUseButton);
                     }
+                    Traverse.Create(button).Field("useOverrideButtonSet").SetValue(false);
+                }
+                foreach (var button in vrtkToggle)
+                {
+                    if (button.gameObject.scene.name == null) continue;
+                    var overrideUseButton = Traverse.Create(button).Field("spec").Field("overrideUseButton").GetValue<VRTK_ControllerEvents.ButtonAlias>();
+                    if (overrideUseButton == VRTK_ControllerEvents.ButtonAlias.Undefined || VRTK_DeviceFinder.GetControllerReferenceRightHand().IsWandOrUndefined() || VRTK_DeviceFinder.GetControllerReferenceLeftHand().IsWandOrUndefined())
+                    {
+                        Traverse.Create(button).Field("interactable").Field("useOverrideButton").SetValue(OriginalUseButton);
+                    }
+                    else
+                    {
+                        Traverse.Create(button).Field("interactable").Field("useOverrideButton").SetValue(overrideUseButton);
+                    }
+                    Traverse.Create(button).Field("useOverrideButtonSet").SetValue(false);
                 }
             }
         }
@@ -171,7 +155,7 @@ namespace VRUtilitiesMod
                 if (LocoInteriors.ContainsKey(go.name) && go.activeInHierarchy == false && go.transform.parent == null)
                 {
                     LocoInteriors[go.name] = go;
-                    Logger.LogInfo($"Found Prefab: {go.name}");
+                    UMM.Loader.LogDebug($"Found Prefab: {go.name}");
                 }
             }
         }
@@ -179,15 +163,33 @@ namespace VRUtilitiesMod
         [HarmonyPatch(typeof(SetupDeviceSpecificControls), "SetupForDevice")]
         public static class OverrideUseInteractionButton
         {
-            public static bool ControllersInit { get; private set; }
-            public static void Postfix()//, ControlImplBase ___control, ref Coroutine ___UpdaterCoroutine)
+            public static void Postfix()
             {
-                if (!ControllersInit)
+                if (OriginalUseButton == VRTK_ControllerEvents.ButtonAlias.Undefined)
                 {
                     OriginalUseButton = SetupDeviceSpecificControls.useOverrideButtonForButtonComponent;
                 }
-                ControllersInit = true;
-                VRUtilitiesMod.Instance.setOverrideInteraction();
+                Loader.Instance?.setOverrideUse();
+            }
+        }
+
+        [HarmonyPatch(typeof(ButtonVRTK), "OnTouched")]
+        [HarmonyPatch(typeof(ToggleSwitchVRTK), "OnTouched")]
+        public static class DisableToggleSwitchTouchInteraction
+        {
+            public static bool Prefix()
+            {
+                if (Loader.Settings.DisableTouch) return false;
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(LocomotionInputWrapper), "JumpRequested", MethodType.Getter)]
+        public static class DisableJump
+        {
+            public static void Postfix(ref bool __result)
+            {
+                if (Loader.Settings.DisableJump) __result = false;
             }
         }
     }
