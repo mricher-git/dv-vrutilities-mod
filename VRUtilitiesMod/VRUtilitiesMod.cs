@@ -2,24 +2,29 @@
 using DV.CabControls.VRTK;
 using DV.VRTK_Extensions;
 using HarmonyLib;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.Remoting.Messaging;
 using UnityEngine;
 using UnityModManagerNet;
 using VRTK;
 using VRUtilitiesMod.UMM;
+using static VRUtilitiesMod.UMM.Loader;
 
 namespace VRUtilitiesMod
 {
 
     public class VRUtilitiesMod : MonoBehaviour
     {
-        public const string Version = "0.2.0";
+        public const string Version = "0.3.1";
 
         private bool GameInitialized;
         internal Loader.VRUtilitiesModSettings Settings;
         public static Harmony HarmonyInst { get; private set; }
+        public static CameraZoomVR CZInstance { get; private set; }
 
         [SaveOnReload]
         private static VRTK_ControllerEvents.ButtonAlias OriginalUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;     
@@ -45,24 +50,65 @@ namespace VRUtilitiesMod
             }
 
             Loader.Log("VR Enabled");
+            /*if (Settings.CameraZoom.Button == VRTK_ControllerEvents.ButtonAlias.Undefined &&
+                Settings.CameraZoom.Axis == VRTK_ControllerEvents.Vector2AxisAlias.Undefined)
+            {
+                StartCoroutine(InitCoro());
+            }*/
 
-            WorldStreamingInit.LoadingFinished += OnLoadingFinished;
-            UnloadWatcher.UnloadRequested += UnloadRequested;
             FindPrefabs();
 
             HarmonyInst = new Harmony(Loader.ModEntry.Info.Id);
             Loader.LogDebug("PatchAll");
             HarmonyInst.PatchAll(Assembly.GetExecutingAssembly());
+
             OnSettingsChanged();
+            WorldStreamingInit.LoadingFinished += OnLoadingFinished;
+            UnloadWatcher.UnloadRequested += UnloadRequested;
+            if (WorldStreamingInit.Instance && WorldStreamingInit.IsLoaded) OnLoadingFinished();
         }
+
+        /*private IEnumerator InitCoro()
+        {
+            while (!VRTK_SDKManager.ValidInstance()) yield return null;
+            VRTK_SDKManager.SubscribeLoadedSetupChanged(InitSettings);
+
+            yield break;
+        }
+
+        private void InitSettings(VRTK_SDKManager sender, VRTK_SDKManager.LoadedSetupChangeEventArgs e)
+        {
+            Loader.LogDebug("Headset: " + VRTK_DeviceFinder.GetHeadsetType().ToString());
+
+            if (VRTK_DeviceFinder.GetHeadsetType() == SDK_BaseHeadset.HeadsetType.WindowsMixedReality)
+            {
+                Settings.CameraZoom.Axis = VRTK_ControllerEvents.Vector2AxisAlias.TouchpadTwo;
+                Settings.CameraZoom.LeftRight = ControllerSide.Right;
+            }
+            else
+            {
+                Settings.CameraZoom.Button = VRTK_ControllerEvents.ButtonAlias.TouchpadPress;
+                Settings.CameraZoom.LeftRight = ControllerSide.Left;
+            }
+
+            VRTK_SDKManager.UnsubscribeLoadedSetupChanged(InitSettings);
+        }*/
 
         public void OnDestroy()
         {
+            UnloadWatcher.UnloadRequested -= UnloadRequested;
+            WorldStreamingInit.LoadingFinished -= OnLoadingFinished;
+
+            if (UnloadWatcher.isUnloading || UnloadWatcher.isQuitting)
+            {
+                return;
+            }
             Settings.UseOverride.Enabled = false;
-            setOverrideUse();
+            setOverrideUse();//Needed?
             Settings.DisableTouch = false;
             Loader.LogDebug("UnpatchAll");
             HarmonyInst.UnpatchAll(Loader.ModEntry.Info.Id);
+            if (CZInstance != null) UnityEngine.Object.DestroyImmediate(CZInstance);
         }
 
         public void OnSettingsChanged()
@@ -78,7 +124,8 @@ namespace VRUtilitiesMod
         private void OnLoadingFinished()
         {
             GameInitialized = true;
-            UMM.Loader.Log("Info: Orignal Use Button was set to" + SetupDeviceSpecificControls.useOverrideButtonForButtonComponent);
+            UMM.Loader.Log("Info: Orignal Use Button was set to " + SetupDeviceSpecificControls.useOverrideButtonForButtonComponent);
+            CZInstance = PlayerManager.ActiveCamera.gameObject.AddComponent<CameraZoomVR>();
         }
 
         private void UnloadRequested()
@@ -88,8 +135,8 @@ namespace VRUtilitiesMod
 
         public void setOverrideUse()
         {
-            var vrtkButtons = (ButtonVRTK[])Resources.FindObjectsOfTypeAll<ButtonVRTK>();// (typeof(ButtonVRTK));
-            var vrtkToggle = (ToggleSwitchVRTK[])Resources.FindObjectsOfTypeAll<ToggleSwitchVRTK>();// (typeof(ToggleSwitchVRTK));
+            var vrtkButtons = (ButtonVRTK[])Resources.FindObjectsOfTypeAll<ButtonVRTK>();
+            var vrtkToggle = (ToggleSwitchVRTK[])Resources.FindObjectsOfTypeAll<ToggleSwitchVRTK>();
 
             if (Settings.UseOverride.Enabled && Settings.UseOverride.Button != VRTK_ControllerEvents.ButtonAlias.Undefined)
             {

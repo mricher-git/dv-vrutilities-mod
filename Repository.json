@@ -2,6 +2,11 @@
   "Releases": [
     {
       "Id": "VRUtilities",
+      "Version": "0.3.1",
+      "DownloadUrl": "https://github.com/mricher-git/dv-vrutilities-mod/releases/download/v0.3.1/dvVRUtilities.zip"
+    },
+    {
+      "Id": "VRUtilities",
       "Version": "0.3.0",
       "DownloadUrl": "https://github.com/mricher-git/dv-vrutilities-mod/releases/download/v0.3.0/dvVRUtilities.zip"
     },
