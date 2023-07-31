@@ -55,6 +55,7 @@ namespace VRUtilitiesMod {
             {
                 SetupDeviceSpecificControls.DeviceSpecificControlsSet.Register(new Action<SDK_BaseController.ControllerHand>(OnControlsSet));
             }
+
             tunnelOverlay = PlayerManager.ActiveCamera.gameObject.AddComponent<CameraZoomTunnel>();
         }
 
@@ -144,7 +145,11 @@ namespace VRUtilitiesMod {
 
         private bool IsZoomPressed()
         {
-            VRTK_ControllerEvents controllerEvents = Settings.LeftRight == Loader.ControllerSide.Left ? controllerEventsLeft : controllerEventsRight;
+            Loader.ControllerSide leftRight = Settings.LeftRight;
+
+            if (leftRight == Loader.ControllerSide.Left ? !leftControlerInitialized : !rightControlerInitialized) return false;
+
+            VRTK_ControllerEvents controllerEvents = leftRight == Loader.ControllerSide.Left ? controllerEventsLeft : controllerEventsRight;
             if (Settings.Button != VRTK_ControllerEvents.ButtonAlias.Undefined)
             {
                 return controllerEvents.IsButtonPressed(Settings.Button);
@@ -173,6 +178,8 @@ namespace VRUtilitiesMod {
             shaderPropertyRadiusMultiplier = Shader.PropertyToID("_RadiusMultiplier");
             
             Settings = UMM.Loader.Settings.CameraZoom;
+
+            VRTK_SDKManager.AttemptAddBehaviourToToggleOnLoadedSetupChange(this);
         }
 
         protected virtual void OnEnable()

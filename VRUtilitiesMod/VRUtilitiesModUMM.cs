@@ -135,7 +135,7 @@ namespace VRUtilitiesMod.UMM
                 public bool TunnelEnabled = true;
 
                 [Draw("Comfort Tunnel Size")]
-                public float ComfortTunnelSize = 0.88f;
+                public float ComfortTunnelSize = 0.94f;
 
                 [Draw("Comfort Tunnel Feather")]
                 public float ComfortTunnerFeather = 0.04f;
