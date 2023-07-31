@@ -104,7 +104,7 @@ namespace VRUtilitiesMod
                 return;
             }
             Settings.UseOverride.Enabled = false;
-            setOverrideUse();//Needed?
+            setOverrideUse();
             Settings.DisableTouch = false;
             Loader.LogDebug("UnpatchAll");
             HarmonyInst.UnpatchAll(Loader.ModEntry.Info.Id);

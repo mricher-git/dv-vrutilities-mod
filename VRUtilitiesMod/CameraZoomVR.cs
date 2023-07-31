@@ -194,6 +194,8 @@ namespace VRUtilitiesMod {
                 originalSkyboxTexture = matCameraEffect.GetTexture(shaderPropertySkyboxTexture);
                 matCameraEffect.SetTexture("_SecondarySkyBox", effectSkybox);
             }
+
+            SetShaderFeather(effectColor, 0, Settings.ComfortTunnerFeather);
         }
 
         protected virtual void OnDisable()
@@ -294,9 +296,28 @@ namespace VRUtilitiesMod {
 
         protected virtual void OnRenderImage(RenderTexture src, RenderTexture dest)
         {
-            if (Settings.TunnelEnabled && lastFov != 0 && Time.deltaTime != 0)
+            if (Settings.TunnelEnabled && lastFov != 1 && Time.deltaTime != 0)
                 Graphics.Blit(src, dest, matCameraEffect);
         }
+
+        protected virtual void OnGUI()
+        {
+            if (!Settings.DebugEnabled) return;
+            GUILayout.BeginArea(new Rect(20, 20, 200, 200));
+            GUILayout.Label($"ZoomEnabled: {Settings.ZoomEnabled}");
+            GUILayout.Label($"zoomFovFactor: {XRDevice.fovZoomFactor}");
+            GUILayout.Label($"lastFov: {lastFov}");
+            GUILayout.Label($"ZoomFactor: {Settings.ZoomFactor}");
+            GUILayout.Label($"targetEffectAmount: {targetEffectAmount}");
+            GUILayout.Label($"TunnelEnabled: {Settings.TunnelEnabled}");
+            GUILayout.Label($"ComfortTunnelSize: {Settings.ComfortTunnelSize}");
+            GUILayout.Label($"ComfortTunnerFeather: {Settings.ComfortTunnerFeather}");
+            GUILayout.Label($"ZoomTime: {Settings.ZoomTime}");
+            GUILayout.Label($"LeftRight: {Settings.LeftRight}");
+            GUILayout.Label($"Button: {Settings.Button}");
+            GUILayout.Label($"Axis: {Settings.Axis}");
+        }
+
 
         private float lastFov = 1;
         private float targetEffectAmount = 0f;
@@ -304,7 +325,7 @@ namespace VRUtilitiesMod {
         private const float normalEffectAmount = 0;
 
         public float farPlaneMulti = 16.7f;
-        public float radiusMultiplier = 0.5f;
+        public float radiusMultiplier = 1f;
 
         public Color effectColor = Color.black;
         

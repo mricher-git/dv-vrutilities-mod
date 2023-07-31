@@ -138,7 +138,10 @@ namespace VRUtilitiesMod.UMM
                 public float ComfortTunnelSize = 0.88f;
 
                 [Draw("Comfort Tunnel Feather")]
-                public float ComfortTunnerFeather = 0.02f;
+                public float ComfortTunnerFeather = 0.04f;
+
+                [Draw("Enable Debug Output")]
+                public bool DebugEnabled = false;
             }
 
             public override void Save(UnityModManager.ModEntry modEntry)
