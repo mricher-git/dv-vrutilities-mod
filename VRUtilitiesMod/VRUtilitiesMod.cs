@@ -19,7 +19,7 @@ namespace VRUtilitiesMod
 
     public class VRUtilitiesMod : MonoBehaviour
     {
-        public const string Version = "0.3.1";
+        public const string Version = "0.3.2";
 
         private bool GameInitialized;
         internal Loader.VRUtilitiesModSettings Settings;
