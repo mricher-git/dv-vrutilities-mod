@@ -28,7 +28,7 @@ namespace VRUtilitiesMod
 
         [SaveOnReload]
         private static VRTK_ControllerEvents.ButtonAlias OriginalUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;     
-        private Dictionary<string, GameObject> LocoInteriors = new Dictionary<string, GameObject>
+        private readonly Dictionary<string, GameObject> LocoInteriors = new Dictionary<string, GameObject>
         {
             { "LocoS282A_Interior", null },
             { "LocoS060_Interior", null },
@@ -45,7 +45,7 @@ namespace VRUtilitiesMod
         {
             if (!VRManager.IsVREnabled())
             {
-                Loader.Log("VR not enabled - DV Utilites mod disabled");
+                Loader.Log("VR not enabled - VR Utilites mod disabled");
                 return;
             }
 

@@ -3,7 +3,7 @@
 	"DisplayName": "VR Utilities",
 	"Author": "Vanguard",
 	"Version": "0.3.3",
-	"ManagerVersion": "0.27.3",
+	"ManagerVersion": "0.27.5",
 	"AssemblyName": "vrUtilities.dll",
 	"EntryMethod": "VRUtilitiesMod.UMM.Loader.Main",
 	"HomePage": "https://www.nexusmods.com/derailvalley/mods/631",

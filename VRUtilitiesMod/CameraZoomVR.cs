@@ -18,14 +18,13 @@ namespace VRUtilitiesMod {
         private Transform controllerRight;
         private VRTK_ControllerEvents controllerEventsLeft;
         private VRTK_ControllerEvents controllerEventsRight;
-        private ComfortTunnelOverlay LocomotionTunnelOverlay;
 
-        private float normalFOV = 1f;
+        private readonly float normalFOV = 1f;
         private float currentZoomVelocity;
 
         private bool disableZoomForced;
         private bool isZoomPressed;
-        private RequestSystem requestSystem = new RequestSystem(1f, true, false);
+        private readonly RequestSystem requestSystem = new RequestSystem(1f, true, false);
 
         private void Start()
         {
