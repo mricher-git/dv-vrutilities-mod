@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.Eventing.Reader;
 using UnityEngine;
 using UnityModManagerNet;
 using VRTK;
@@ -42,7 +41,7 @@ namespace VRUtilitiesMod.UMM
 
         private static bool Unload(UnityModManager.ModEntry modEntry)
         {
-            if (Instance != null) UnityEngine.Object.DestroyImmediate(Instance);
+            if (Instance != null) UnityEngine.Object.DestroyImmediate(Instance.gameObject);
             return true;
         }
 

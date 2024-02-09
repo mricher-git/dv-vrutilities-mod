@@ -2,7 +2,7 @@
 	"Id": "VRUtilities",
 	"DisplayName": "VR Utilities",
 	"Author": "Vanguard",
-	"Version": "0.3.3",
+	"Version": "0.3.4",
 	"ManagerVersion": "0.27.5",
 	"AssemblyName": "vrUtilities.dll",
 	"EntryMethod": "VRUtilitiesMod.UMM.Loader.Main",

@@ -1,25 +1,19 @@
-﻿using DV.CabControls.Spec;
-using DV.CabControls.VRTK;
+﻿using DV.CabControls.VRTK;
 using DV.VRTK_Extensions;
 using HarmonyLib;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.Remoting.Messaging;
 using UnityEngine;
 using UnityModManagerNet;
 using VRTK;
 using VRUtilitiesMod.UMM;
-using static VRUtilitiesMod.UMM.Loader;
 
 namespace VRUtilitiesMod
 {
 
     public class VRUtilitiesMod : MonoBehaviour
     {
-        public const string Version = "0.3.3";
+        public const string Version = "0.3.4";
 
         private bool GameInitialized;
         internal Loader.VRUtilitiesModSettings Settings;
@@ -28,16 +22,7 @@ namespace VRUtilitiesMod
 
         [SaveOnReload]
         private static VRTK_ControllerEvents.ButtonAlias OriginalUseButton = VRTK_ControllerEvents.ButtonAlias.Undefined;     
-        private readonly Dictionary<string, GameObject> LocoInteriors = new Dictionary<string, GameObject>
-        {
-            { "LocoS282A_Interior", null },
-            { "LocoS060_Interior", null },
-            { "LocoDE2_Interior", null },
-            { "LocoDM3_Interior", null },
-            { "LocoDH4_Interior", null },
-            { "LocoDE6_Interior", null }
-        };
-        
+                
         public bool TouchInteractionEnabled { set; get; }
         public VRTK_ControllerEvents.ButtonAlias TouchInteractionButton { set; get; }
 
@@ -55,8 +40,6 @@ namespace VRUtilitiesMod
             {
                 StartCoroutine(InitCoro());
             }*/
-
-            FindPrefabs();
 
             HarmonyInst = new Harmony(Loader.ModEntry.Info.Id);
             Loader.LogDebug("PatchAll");
@@ -193,20 +176,6 @@ namespace VRUtilitiesMod
             }
         }
 
-        public void FindPrefabs()
-        {
-            var gos = Resources.FindObjectsOfTypeAll<GameObject>();
-
-            foreach (var go in gos)
-            {
-                if (LocoInteriors.ContainsKey(go.name) && go.activeInHierarchy == false && go.transform.parent == null)
-                {
-                    LocoInteriors[go.name] = go;
-                    UMM.Loader.LogDebug($"Found Prefab: {go.name}");
-                }
-            }
-        }
-
         [HarmonyPatch(typeof(SetupDeviceSpecificControls), "SetupForDevice")]
         public static class OverrideUseInteractionButton
         {
@@ -231,7 +200,7 @@ namespace VRUtilitiesMod
             }
         }
 
-        [HarmonyPatch(typeof(LocomotionInputWrapper), "JumpRequested", MethodType.Getter)]
+        [HarmonyPatch(typeof(LocomotionInputVr), "JumpRequested", MethodType.Getter)]
         public static class DisableJump
         {
             public static void Postfix(ref bool __result)
